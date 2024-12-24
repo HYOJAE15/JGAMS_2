@@ -252,8 +252,8 @@ class JGAMFunctions(DNNFunctions):
 
                     if len(input_point) > 0 :
                         ## 3. SAM inference
-                        self.inferenceSAM(crop_img, input_point, input_label, x1, y1)
-                        # self.inferenceSAM2(input_point, input_label, input_box)
+                        # self.inferenceSAM(crop_img, input_point, input_label, x1, y1)
+                        self.inferenceSAM2(crop_img, input_point, input_label, x1, y1)
                     else :
                         print(f"No point")
             
@@ -487,6 +487,28 @@ class JGAMFunctions(DNNFunctions):
 
         self.label[y_idx, x_idx] = 2
 
+    def inferenceSAM2(self, img, input_point, input_label, x1, y1):
+        
+        if hasattr(self, 'sam_model') == False :
+            self.load_sam2(self.sam2_config, self.sam2_checkpoint) 
+                
+        self.sam2_predictor.set_image(img)
+        
+        masks, scores, logits = self.sam2_predictor.predict(
+            point_coords=input_point,
+            point_labels=input_label,
+            multimask_output=True
+        )
+
+        mask = masks[np.argmax(scores), :, :]
+        
+        # update label with result
+        idx = np.argwhere(mask == 1)
+        y_idx, x_idx = idx[:, 0]+y1+self.GD_min_y, idx[:, 1]+x1+self.GD_min_x
+
+        self.label[y_idx, x_idx] = 2
+
+
         ## 4. Save Image
     def SaveImg(self):
         label_idx = np.argwhere(self.label == 2)
@@ -527,70 +549,3 @@ class JGAMFunctions(DNNFunctions):
 
         imwrite_colormap(colormapPath, sam_colormap)
         cv2.imwrite(pointmapPath, img)
-
-        ## 3. SAM inference
-    # def inferenceSAM2(self, input_point, input_label, input_box):
-        
-    #     if hasattr(self, 'sam2_model') == False :
-    #         self.load_sam2(self.sam2_config, self.sam2_checkpoint) 
-
-    #     img = cvtPixmapToArray(self.pixmap)
-    #     img = img[:, :, :3]
-    #     # img_roi = img[self.GD_min_y:self.GD_max_y, self.GD_min_x:self.GD_max_x, :3]
-                
-    #     self.sam2_predictor.set_image(img)
-        
-    #     masks, scores, logits = self.sam2_predictor.predict(
-    #         point_coords=input_point,
-    #         point_labels=input_label,
-    #         box=input_box, 
-    #         multimask_output=True,
-    #     )
-
-    #     mask = masks[np.argmax(scores), :, :]
-        
-    #     # update label with result
-    #     idx = np.argwhere(mask == 1)
-    #     y_idx, x_idx = idx[:, 0], idx[:, 1]
-
-    #     self.label[self.label!=0] = 0
-    #     self.label[y_idx, x_idx] = 2
-
-    #     self.colormap = convertLabelToColorMap(self.label, self.label_palette, self.alpha)
-    #     self.colormap[y_idx, x_idx, :3] = self.label_palette[2]
-
-    #     imwrite(self.labelPath, self.label)
-
-    #     _colormap = copy.deepcopy(self.colormap)
-    #     sam_colormap = blendImageWithColorMap(img, self.label)
-    #     img = imread(self.imgPath)
-
-    #     for joint in self.top6_joint:
-    #         cv2.circle(_colormap, (joint[0], joint[1]), 9, (0, 0, 255, 255), -1)
-    #         cv2.circle(sam_colormap, (joint[0], joint[1]), 9, (255, 0, 0, 255), -1)
-    #         cv2.circle(img, (joint[0], joint[1]), 9, (255, 0, 0, 255), -1)
-        
-    #     for gap in self.top6_gap:
-    #         cv2.circle(_colormap, (gap[0], gap[1]), 9, (255, 0, 0, 255), -1)
-    #         cv2.circle(sam_colormap, (gap[0], gap[1]), 9, (0, 0, 255, 255), -1)
-    #         cv2.circle(img, (gap[0], gap[1]), 9, (0, 0, 255, 255), -1)
-
-    #     self.color_pixmap = QPixmap(cvtArrayToQImage(_colormap))
-    #     self.color_pixmap_item.setPixmap(QPixmap())
-    #     self.color_pixmap_item.setPixmap(self.color_pixmap)
-
-    #     colormapPath = os.path.dirname(self.labelPath)
-    #     colormapName = os.path.basename(self.labelPath)
-    #     colormapPath = os.path.dirname(colormapPath)
-    #     colormapPath = os.path.dirname(colormapPath)
-    #     colormapPath = os.path.join(colormapPath, "JGAM_colormap")
-    #     os.makedirs(colormapPath, exist_ok=True)
-    #     colormapPath = os.path.join(colormapPath, colormapName)
-
-    #     pointName = colormapName.replace("_labelIds.png", "_point.png")
-    #     pointmapPath = os.path.join(os.path.dirname(colormapPath), pointName)
-
-    #     imwrite_colormap(colormapPath, sam_colormap)
-    #     cv2.imwrite(pointmapPath, img)
-        
-
