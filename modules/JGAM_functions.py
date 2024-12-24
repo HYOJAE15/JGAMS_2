@@ -270,7 +270,7 @@ class JGAMFunctions(DNNFunctions):
             # get masks
             image = cv2.imread(self.imgPath)
             gap_mask = self.label == 2
-            gap_mask_t = gap_mask.astype(np.bool).T
+            gap_mask_t = gap_mask.astype(np.bool_).T
 
             # Calculate Gap Ranges
             transition_ranges = find_transition_ranges(gap_mask_t)
